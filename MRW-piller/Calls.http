@@ -1,0 +1,15 @@
+POST http://localhost:5173/
+Content-Type: application/json
+
+{
+    "id": "Martin",
+    "serial": "1234",
+    "data": {
+        "pulse": 70
+    }
+}
+
+###
+
+GET http://localhost:5173/
+Content-Type: application/json
