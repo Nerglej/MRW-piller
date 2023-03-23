@@ -8,8 +8,7 @@
 #define SERVICE_UUID "6f9f35df-adc2-44e1-8c02-1dcb67d42551"
 #define CHARACTERISTIC_UUID "a2779120-40d8-4920-8347-57655f37f23a"
 
-BLECharacteristic inputCharacteristic();
-BLEDescriptor inputDescriptor(BLEUUID((uint16_t)0x2902));
+BLECharacteristic *pCharacteristic;
 
 void bleSetup() {
     Serial.println("Starting BLE server...");
@@ -19,9 +18,9 @@ void bleSetup() {
     BLEServer *pServer = BLEDevice::createServer();
     BLEService *pService = pServer->createService(SERVICE_UUID);
 
-    BLECharacteristic *pCharacteristic = pService->createCharacteristic(
+    pCharacteristic = pService->createCharacteristic(
                                             CHARACTERISTIC_UUID,
-                                            BLECharacteristic::PROPERTY_READ
+                                            BLECharacteristic::PROPERTY_NOTIFY
                                         );
 
     pCharacteristic->setValue("start");
@@ -40,5 +39,7 @@ void setup() {
 }
 
 void loop() {
-  
+    pCharacteristic->setValue("turn");
+    pCharacteristic->notify();
+    delay(2500);
 }
