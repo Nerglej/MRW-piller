@@ -28,6 +28,7 @@ void setupBLE() {
     pService->start();
 
     BLEAdvertising *pAdvertising = pServer->getAdvertising();
+    pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->start();
 
     Serial.println("Successfully started BLE server!");
