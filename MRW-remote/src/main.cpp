@@ -10,7 +10,7 @@
 
 BLECharacteristic *pCharacteristic;
 
-void bleSetup() {
+void setupBLE() {
     Serial.println("Starting BLE server...");
 
     BLEDevice::init(BLE_SERVER_NAME);
@@ -35,7 +35,7 @@ void bleSetup() {
 
 void setup() {
     Serial.begin(115200);
-    bleSetup();
+    setupBLE();
 }
 
 void loop() {
