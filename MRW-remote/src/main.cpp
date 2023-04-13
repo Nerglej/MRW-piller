@@ -6,24 +6,29 @@
 #define BLE_SERVER_NAME "MRW Remote"
 
 #define SERVICE_UUID "6f9f35df-adc2-44e1-8c02-1dcb67d42551"
-#define CHARACTERISTIC_UUID "a2779120-40d8-4920-8347-57655f37f23a"
+#define CONTROL_CHARACTERISTIC_UUID "407adfd4-7909-4371-ab1f-362fdd9541ae"
 
-BLECharacteristic *pCharacteristic;
+BLECharacteristic *pControlCharacteristic;
+
+// Index 0 is send, 1 is up, 2 is down, 3 is left, 4 is right.
+int inputs[5] = { 33, 32, 27, 26, 25 };
+std::__cxx11::string inputValues[5] = { "enter", "up", "down", "left", "right" };
+int inputLength = 5;
+int latestInput = 0;
 
 void setupBLE() {
-    Serial.println("Starting BLE server...");
+    Serial.println("Starter BLE server...");
 
     BLEDevice::init(BLE_SERVER_NAME);
 
     BLEServer *pServer = BLEDevice::createServer();
     BLEService *pService = pServer->createService(SERVICE_UUID);
 
-    pCharacteristic = pService->createCharacteristic(
-                                            CHARACTERISTIC_UUID,
+    pControlCharacteristic = pService->createCharacteristic(
+                                            CONTROL_CHARACTERISTIC_UUID,
                                             BLECharacteristic::PROPERTY_NOTIFY
                                         );
-
-    pCharacteristic->setValue("start");
+    pControlCharacteristic->setValue("");
 
     pService->start();
 
@@ -31,16 +36,52 @@ void setupBLE() {
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->start();
 
-    Serial.println("Successfully started BLE server!");
+    Serial.println("BLE serveren startede.");
+}
+
+void inputSetup() {
+    for (int i = 0; i < inputLength; i++) {
+        pinMode(inputs[i], INPUT_PULLUP);
+    }
+}
+
+bool readButtonInput(uint8_t input) {
+    if (digitalRead(input) == HIGH) {
+        return false;
+    }
+    return true;
+}
+
+void sendInputValue(std::string s) {
+    pControlCharacteristic->setValue(s);
+    pControlCharacteristic->notify();
+}
+
+void inputRead() {
+    if (latestInput != -1) {
+        if (!readButtonInput(inputs[latestInput])) {
+            latestInput = -1;
+            sendInputValue("released");
+        }
+        return;
+    }
+
+    for (int i = 0; i < inputLength; i++) {
+        if (readButtonInput(inputs[i])) {
+            sendInputValue(inputValues[i]);
+            latestInput = i;
+            return;
+        }
+    }
 }
 
 void setup() {
     Serial.begin(115200);
+    inputSetup();
     setupBLE();
 }
 
 void loop() {
-    pCharacteristic->setValue("turn");
-    pCharacteristic->notify();
-    delay(2500);
+    inputRead();
+    delay(25);
 }

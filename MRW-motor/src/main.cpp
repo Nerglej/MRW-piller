@@ -26,7 +26,7 @@ const int seventh = stepsPerRev / 7;
 #define BLE_SERVER_NAME "MRW Remote"
 
 static BLEUUID serviceUUID("6f9f35df-adc2-44e1-8c02-1dcb67d42551");
-static BLEUUID inputCharacteristicUUID("a2779120-40d8-4920-8347-57655f37f23a");
+static BLEUUID inputCharacteristicUUID("407adfd4-7909-4371-ab1f-362fdd9541ae");
 
 static BLEAddress *pServerAddress;
 
@@ -37,10 +37,18 @@ bool connected = false;
 bool scan = false;
 BLEAdvertisedDevice *connectedDevice;
 
+
+
 void inputCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
     //TODO: Write callbacks to all events.
+    char* pure = (char*)pData;
+    if (strlen(pure) > length) {
+        pure[length] = '\0';
+    }
 
-    stepper.step(half);
+    Serial.print(pure);
+    Serial.print(" ");
+    // stepper.step(half);
 }
 
 class ClientCallbacks : public BLEClientCallbacks {
