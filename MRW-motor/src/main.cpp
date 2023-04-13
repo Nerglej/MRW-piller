@@ -6,6 +6,7 @@
 #include <BLEScan.h>
 
 #include <Wifi.h>
+#include <WifiCreds.h>
 
 #define IN1 16
 #define IN2 17
@@ -20,9 +21,6 @@ Stepper stepper = Stepper(stepsPerRev, IN1, IN3, IN2, IN4);
 const int half = stepsPerRev / 2;
 const int seventh = stepsPerRev / 7;
 
-#define wifi_ssid "Wills Spot"
-#define wifi_password "Jelgrens"
-
 #define BLE_SERVER_NAME "MRW Remote"
 
 static BLEUUID serviceUUID("6f9f35df-adc2-44e1-8c02-1dcb67d42551");
@@ -36,8 +34,6 @@ bool connectFlag = false;
 bool connected = false;
 bool scan = false;
 BLEAdvertisedDevice *connectedDevice;
-
-
 
 void inputCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
     //TODO: Write callbacks to all events.
@@ -127,7 +123,7 @@ bool connectBLE(BLEAddress pAddress) {
 
 void connectWifi() {
     WiFi.mode(WIFI_STA);
-    WiFi.begin(wifi_ssid, wifi_password);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
     Serial.print("Connecting to Wifi...");
 

@@ -14,3 +14,5 @@ Hver af de 5 knapper betyder én af fem ting: op, ned, højre, venstre og send. 
 | Ned     | 27  |
 | Venstre | 26  |
 | Højre   | 25  |
+
+Se dette link for mere: https://lastminuteengineers.com/esp32-pinout-reference/
