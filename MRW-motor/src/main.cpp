@@ -13,7 +13,7 @@
 #define IN4 19
 
 #define stepsPerRev 2038
-#define stepSpeed 3
+#define stepSpeed 15
 
 Stepper stepper = Stepper(stepsPerRev, IN1, IN3, IN2, IN4);
 
@@ -42,6 +42,7 @@ bool bleScan = false;
 BLEAdvertisedDevice *connectedDevice;
 
 bool clicking = false;
+bool turn = false;
 
 void inputCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
     //TODO: Write callbacks to all events.
@@ -56,14 +57,7 @@ void inputCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* p
     else if (clicking == false) {
         if (strcmp(pure, "enter") == 0) {
             clicking = true;
-            
-            lcd.setCursor(1, 1);
-            lcd.write("Pilling you...");
-            
-            stepper.step(seventh);
-
-            lcd.setCursor(1, 1);
-            lcd.write("              ");
+            turn = true;
         }
     }
 }
@@ -76,7 +70,6 @@ class ClientCallbacks : public BLEClientCallbacks {
     void onDisconnect(BLEClient* pclient) {
         bleConnected = false;
         bleConnectFlag = true;
-        Serial.println("onDisconnect");
     }
 };
 
@@ -106,7 +99,7 @@ void setupBLE() {
     pBLEScan->setInterval(1349);
     pBLEScan->setWindow(449);
     pBLEScan->setActiveScan(true);
-    pBLEScan->start(3, false);
+    pBLEScan->start(3, true);
 }
 
 bool connectBLE(BLEAddress pAddress) {
@@ -161,10 +154,21 @@ void setup() {
 }
 
 void loop() {
+    if (turn) {
+        lcd.setCursor(1, 1);
+        lcd.write("Pilling you...");
+        
+        stepper.step(seventh);
+
+        lcd.setCursor(1, 1);
+        lcd.write("              ");
+        turn = false;
+    }
+
     if (bleConnectFlag && !bleConnected) {
         connectBLE(connectedDevice->getAddress());
         bleConnectFlag = false;
     }
 
-    delay(1000);
+    delay(100);
 }
