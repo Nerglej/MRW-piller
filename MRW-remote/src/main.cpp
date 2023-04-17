@@ -13,7 +13,7 @@ BLECharacteristic *pControlCharacteristic;
 // Index 0 is send, 1 is up, 2 is down, 3 is left, 4 is right.
 int inputs[5] = { 33, 32, 27, 26, 25 };
 std::__cxx11::string inputValues[5] = { "enter", "up", "down", "left", "right" };
-int inputLength = 5;
+int inputLength = 1;
 int latestInput = 0;
 
 void setupBLE() {
@@ -70,6 +70,8 @@ void inputRead() {
         if (readButtonInput(inputs[i])) {
             sendInputValue(inputValues[i]);
             latestInput = i;
+            Serial.print("Clicked ");
+            Serial.print(i);
             return;
         }
     }
@@ -83,5 +85,5 @@ void setup() {
 
 void loop() {
     inputRead();
-    delay(25);
+    delay(100);
 }

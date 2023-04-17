@@ -2,10 +2,11 @@
 Motoren forbinder til MRW remote via Bluetooth Low Energy. Den forbinder også til et WiFi-netværk.
 
 ## Materialer
-1. ESP32 board (NodeMCU ESP32 blev brugt under udvikling)
-2. Stepmotor og stepmotor-driver.
-3. LCD
-4. Højtaler
+1. ESP32 board (NodeMCU ESP32)
+1. Stepmotor  
+1. stepmotor-driver (ULN2003)
+1. LCD
+1. Højtaler
 
 ## WiFi
 For at forbinde til et WiFi-netværk, skal du lave en fil ved siden af main.cpp, der hedder WiFiCreds.h, der indeholder følgende:
@@ -27,6 +28,20 @@ på kode, samtidig med at det sikrer at credentialsne ikke bliver uploadet til G
 
 | LCD | Pin |
 |-----|-----|
-|   s |   s |
+| VSS | GND |
+| VDD | 5V  |
+| RS  | 21  |
+| RW  | GND |
+| E   | 22  |
+| D0  | N.C |
+| D1  | N.C |
+| D2  | N.C |
+| D3  | N.C |
+| D4  | 27  |
+| D5  | 26  |
+| D6  | 25  |
+| D7  | 32  |
+| A   | 5V  |
+| K   | GND |
 
 Se dette link for mere: https://lastminuteengineers.com/esp32-pinout-reference/

@@ -5,8 +5,7 @@
 #include <BLEClient.h>
 #include <BLEScan.h>
 
-#include <Wifi.h>
-#include <WifiCreds.h>
+#include <LiquidCrystal.h>
 
 #define IN1 16
 #define IN2 17
@@ -14,12 +13,19 @@
 #define IN4 19
 
 #define stepsPerRev 2038
-#define stepSpeed 15
+#define stepSpeed 3
 
 Stepper stepper = Stepper(stepsPerRev, IN1, IN3, IN2, IN4);
 
-const int half = stepsPerRev / 2;
 const int seventh = stepsPerRev / 7;
+
+#define LCD_RS 21
+#define LCD_ENABLE 22
+#define LCD_D4 27
+#define LCD_D5 26
+#define LCD_D6 25
+#define LCD_D7 32
+LiquidCrystal lcd(LCD_RS, LCD_ENABLE, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 #define BLE_SERVER_NAME "MRW Remote"
 
@@ -30,10 +36,12 @@ static BLEAddress *pServerAddress;
 
 static BLERemoteCharacteristic* inputCharacteristic;
 
-bool connectFlag = false;
-bool connected = false;
-bool scan = false;
+bool bleConnectFlag = false;
+bool bleConnected = false;
+bool bleScan = false;
 BLEAdvertisedDevice *connectedDevice;
+
+bool clicking = false;
 
 void inputCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
     //TODO: Write callbacks to all events.
@@ -42,19 +50,32 @@ void inputCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* p
         pure[length] = '\0';
     }
 
-    Serial.print(pure);
-    Serial.print(" ");
-    // stepper.step(half);
+    if (strcmp(pure, "released") == 0) {
+        clicking = false;
+    }
+    else if (clicking == false) {
+        if (strcmp(pure, "enter") == 0) {
+            clicking = true;
+            
+            lcd.setCursor(1, 1);
+            lcd.write("Pilling you...");
+            
+            stepper.step(seventh);
+
+            lcd.setCursor(1, 1);
+            lcd.write("              ");
+        }
+    }
 }
 
 class ClientCallbacks : public BLEClientCallbacks {
     void onConnect(BLEClient* pclient) {
-        connected = true;
+        bleConnected = true;
     }
 
     void onDisconnect(BLEClient* pclient) {
-        connected = false;
-        connectFlag = true;
+        bleConnected = false;
+        bleConnectFlag = true;
         Serial.println("onDisconnect");
     }
 };
@@ -71,7 +92,7 @@ class AdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
         if (advertisedDevice.isAdvertisingService(serviceUUID)) {
             BLEDevice::getScan()->stop();
             connectedDevice = new BLEAdvertisedDevice(advertisedDevice);
-            connectFlag = true;
+            bleConnectFlag = true;
             Serial.println("Found valid BLE server.");
         }
     }
@@ -121,34 +142,28 @@ bool connectBLE(BLEAddress pAddress) {
     return true;
 }
 
-void connectWifi() {
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+void setupLCD() {
+    Serial.print("Setting up LCD...");
 
-    Serial.print("Connecting to Wifi...");
-
-    while (WiFi.status() != WL_CONNECTED) {
-        Serial.print('.');
-        delay(1000);
-    }
-
-    Serial.print(" Got ip: ");
-    Serial.println(WiFi.localIP());
+    lcd.begin(16, 2);
+    lcd.setCursor(3, 0);
+    lcd.print("MRW-piller");
+    lcd.blink();
 }
 
 void setup() {
     Serial.begin(115200);
 
+    setupLCD();
     setupBLE();
-    // connectWifi();
 
     stepper.setSpeed(stepSpeed);
 }
 
 void loop() {
-    if (connectFlag && !connected) {
+    if (bleConnectFlag && !bleConnected) {
         connectBLE(connectedDevice->getAddress());
-        connectFlag = false;
+        bleConnectFlag = false;
     }
 
     delay(1000);

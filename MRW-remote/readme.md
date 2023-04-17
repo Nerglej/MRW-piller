@@ -1,7 +1,7 @@
 # MRW Pille-remote
 Dette er en kort beskrivelse af hvordan denne remote skal sættes til.
 Projektet kræver nogle ting:
-1. ESP32 board (NodeMCU ESP32 blev brugt under udvikling)
+1. ESP32 board (NodeMCU ESP32 el. andet)
 2. 5 knapper
 
 De 5 knapper bliver tilsluttet til ESP32. Dette gøres, for det første, ved at alle knapperne bliver tilsluttet til GND.
