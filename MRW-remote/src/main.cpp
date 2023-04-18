@@ -1,42 +1,65 @@
 #include <Arduino.h>
 
-#include <BLEDevice.h>
-#include <BLEServer.h>
+#include <esp_now.h>
+#include <WiFi.h>
 
-#define BLE_SERVER_NAME "MRW Remote"
-
-#define SERVICE_UUID "6f9f35df-adc2-44e1-8c02-1dcb67d42551"
-#define CONTROL_CHARACTERISTIC_UUID "407adfd4-7909-4371-ab1f-362fdd9541ae"
-
-BLECharacteristic *pControlCharacteristic;
+#include <mac.h>
 
 // Index 0 is send, 1 is up, 2 is down, 3 is left, 4 is right.
 int inputs[5] = { 33, 32, 27, 26, 25 };
-std::__cxx11::string inputValues[5] = { "enter", "up", "down", "left", "right" };
+String inputValues[5] = { "enter", "up", "down", "left", "right" };
 int inputLength = 1;
 int latestInput = 0;
 
-void setupBLE() {
-    Serial.println("Starter BLE server...");
+esp_now_peer_info_t peerInfo;
 
-    BLEDevice::init(BLE_SERVER_NAME);
+typedef struct remote_control_message {
+    String input;
+} remote_control_message;
 
-    BLEServer *pServer = BLEDevice::createServer();
-    BLEService *pService = pServer->createService(SERVICE_UUID);
+typedef struct motor_message {
+    int pulse;
+} motor_message;
 
-    pControlCharacteristic = pService->createCharacteristic(
-                                            CONTROL_CHARACTERISTIC_UUID,
-                                            BLECharacteristic::PROPERTY_NOTIFY
-                                        );
-    pControlCharacteristic->setValue("");
+motor_message incomingMotorData;
 
-    pService->start();
+// Callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+    Serial.print("\r\nLast Packet Send Status:\t");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
 
-    BLEAdvertising *pAdvertising = pServer->getAdvertising();
-    pAdvertising->addServiceUUID(SERVICE_UUID);
-    pAdvertising->start();
+// Callback when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+    memcpy(&incomingMotorData, incomingData, sizeof(incomingMotorData));
 
-    Serial.println("BLE serveren startede.");
+    Serial.print("Bytes received: ");
+    Serial.println(len);
+}
+
+void ESPNOWSetup() {
+    WiFi.mode(WIFI_STA);
+
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
+
+    esp_now_register_send_cb(OnDataSent);
+
+    // Register peer
+    memcpy(peerInfo.peer_addr, peer_address, 6);
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
+    
+    // Add peer        
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+        Serial.println("Failed to add peer");
+        return;
+    }
+
+    // Register for a callback function that will be called when data is received
+    esp_now_register_recv_cb(OnDataRecv);
 }
 
 void inputSetup() {
@@ -52,9 +75,19 @@ bool readButtonInput(uint8_t input) {
     return true;
 }
 
-void sendInputValue(std::string s) {
-    pControlCharacteristic->setValue(s);
-    pControlCharacteristic->notify();
+void sendInputValue(String s) {
+    // Send input
+    remote_control_message control_msg;
+    control_msg.input = s;
+
+    esp_err_t result = esp_now_send(peer_address, (uint8_t *) &control_msg, sizeof(control_msg));
+
+    if (result == ESP_OK) {
+        Serial.println("Sent with success");
+    }
+    else {
+        Serial.println("Error sending the data");
+    }
 }
 
 void inputRead() {
@@ -80,7 +113,7 @@ void inputRead() {
 void setup() {
     Serial.begin(115200);
     inputSetup();
-    setupBLE();
+    ESPNOWSetup();
 }
 
 void loop() {

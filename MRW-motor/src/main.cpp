@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include <Stepper.h>
 
-#include <BLEDevice.h>
-#include <BLEClient.h>
-#include <BLEScan.h>
+#include <esp_now.h>
+#include <WiFi.h>
+#include <mac.h>
 
 #include <LiquidCrystal.h>
 
@@ -25,120 +25,48 @@
 #define LCD_D6 25
 #define LCD_D7 32
 
-#define BLE_SERVER_NAME "MRW Remote"
-
 LiquidCrystal lcd(LCD_RS, LCD_ENABLE, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 Stepper stepper = Stepper(stepsPerRev, IN1, IN3, IN2, IN4);
 const int seventh = stepsPerRev / 7;
 
-static BLEUUID serviceUUID("6f9f35df-adc2-44e1-8c02-1dcb67d42551");
-static BLEUUID inputCharacteristicUUID("407adfd4-7909-4371-ab1f-362fdd9541ae");
+esp_now_peer_info_t peerInfo;
 
-static BLEAddress *pServerAddress;
+typedef struct remote_control_message {
+    String input;
+} remote_control_message;
 
-static BLERemoteCharacteristic* inputCharacteristic;
+typedef struct motor_message {
+    int pulse;
+} motor_message;
 
-bool bleConnectFlag = false;
-bool bleConnected = false;
-bool bleScan = false;
-BLEAdvertisedDevice *connectedDevice;
+remote_control_message remote_message;
 
 bool clicking = false;
 bool turn = false;
 
-void inputCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
-    //TODO: Write callbacks to all events.
-    char* pure = (char*)pData;
-    if (strlen(pure) > length) {
-        pure[length] = '\0';
-    }
+// Callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+    Serial.print("\r\nLast Packet Send Status:\t");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
 
-    if (strcmp(pure, "released") == 0) {
+// Callback when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+    memcpy(&remote_message, incomingData, sizeof(remote_message));
+
+    if (remote_message.input == "released") {
         clicking = false;
     }
-    else if (clicking == false) {
-        if (strcmp(pure, "enter") == 0) {
-            clicking = true;
+    else if (!clicking) {
+        if (remote_message.input == "enter") {
             turn = true;
+            clicking = true;
         }
     }
 }
 
-class ClientCallbacks : public BLEClientCallbacks {
-    void onConnect(BLEClient* pclient) {
-        bleConnected = true;
-    }
-
-    void onDisconnect(BLEClient* pclient) {
-        bleConnected = false;
-        bleConnectFlag = true;
-    }
-};
-
-class AdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
-    void onResult(BLEAdvertisedDevice advertisedDevice) {
-        if (!advertisedDevice.haveServiceUUID()) {
-            return;
-        }
-
-        Serial.print("BLE Advertised Device with service UUID has been found: ");
-        Serial.println(advertisedDevice.toString().c_str());
-        
-        if (advertisedDevice.isAdvertisingService(serviceUUID)) {
-            BLEDevice::getScan()->stop();
-            connectedDevice = new BLEAdvertisedDevice(advertisedDevice);
-            bleConnectFlag = true;
-            Serial.println("Found valid BLE server.");
-        }
-    }
-};
-
-void setupBLE() {
-    BLEDevice::init("");
-
-    BLEScan* pBLEScan = BLEDevice::getScan();
-    pBLEScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks());
-    pBLEScan->setInterval(1349);
-    pBLEScan->setWindow(449);
-    pBLEScan->setActiveScan(true);
-    pBLEScan->start(3, true);
-}
-
-bool connectBLE(BLEAddress pAddress) {
-    BLEClient* pClient = BLEDevice::createClient();
-
-    pClient->setClientCallbacks(new ClientCallbacks());
-
-    pClient->connect(pAddress);
-    Serial.println("Connected to server.");
-
-    BLERemoteService* pRemoteService = pClient->getService(serviceUUID);
-    if (pRemoteService == nullptr) {
-        Serial.print("Failed to find service with the given UUID: ");
-        Serial.println(serviceUUID.toString().c_str());
-        pClient->disconnect();
-
-        return false;
-    }
-
-    inputCharacteristic = pRemoteService->getCharacteristic(inputCharacteristicUUID);
-
-    if (inputCharacteristic == nullptr) {
-        Serial.print("Failed to find characteristic with the given UUID: ");
-        Serial.println(inputCharacteristicUUID.toString().c_str());
-        pClient->disconnect();
-
-        return false;
-    }
-
-    inputCharacteristic->registerForNotify(inputCallback);
-
-    Serial.println("Successfully got all characteristics.");
-    return true;
-}
-
-void setupLCD() {
+void LCDSetup() {
     Serial.print("Setting up LCD...");
 
     lcd.begin(16, 2);
@@ -147,13 +75,39 @@ void setupLCD() {
     lcd.blink();
 }
 
+void ESPNOWSetup() {
+    WiFi.mode(WIFI_STA);
+
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
+
+    esp_now_register_send_cb(OnDataSent);
+
+    // Register peer
+    memcpy(peerInfo.peer_addr, peer_address, 6);
+    peerInfo.channel = 0;  
+    peerInfo.encrypt = false;
+    
+    // Add peer        
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+        Serial.println("Failed to add peer");
+        return;
+    }
+    // Register for a callback function that will be called when data is received
+    esp_now_register_recv_cb(OnDataRecv);
+}
+
 void setup() {
     Serial.begin(115200);
 
-    setupLCD();
-    setupBLE();
-
+    // Opsætning af LCD
+    LCDSetup();
+    // Opsætning af lyd-output
     pinMode(SOUND_PIN, OUTPUT);
+    // Opsætning af ESPNOW
+    ESPNOWSetup();
 
     stepper.setSpeed(stepSpeed);
 }
@@ -172,11 +126,6 @@ void loop() {
         lcd.setCursor(1, 1);
         lcd.write("              ");
         turn = false;
-    }
-
-    if (bleConnectFlag && !bleConnected) {
-        connectBLE(connectedDevice->getAddress());
-        bleConnectFlag = false;
     }
 
     delay(100);
