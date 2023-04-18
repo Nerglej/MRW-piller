@@ -3,7 +3,8 @@
 
 #include <esp_now.h>
 #include <WiFi.h>
-#include <mac.h>
+#include <HTTPClient.h>
+#include <settings.h>
 
 #include <LiquidCrystal.h>
 
@@ -12,11 +13,11 @@
 #define IN3 18
 #define IN4 19
 
-#define SOUND_PIN 23
-#define FREQUENCY 2093
-
 #define stepsPerRev 2038
 #define stepSpeed 15
+
+#define SOUND_PIN 23
+#define FREQUENCY 2093
 
 #define LCD_RS 21
 #define LCD_ENABLE 22
@@ -76,8 +77,6 @@ void LCDSetup() {
 }
 
 void ESPNOWSetup() {
-    WiFi.mode(WIFI_STA);
-
     if (esp_now_init() != ESP_OK) {
         Serial.println("Error initializing ESP-NOW");
         return;
@@ -99,6 +98,19 @@ void ESPNOWSetup() {
     esp_now_register_recv_cb(OnDataRecv);
 }
 
+void WifiSetup() {
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    Serial.print("\nConnecting to wifi");
+
+    // Wait until connected
+    while (WiFi.status() == WL_CONNECTED) {
+        Serial.print(".");
+        delay(500);
+    }
+
+    Serial.println("\nSuccessfully connected to wifi");
+}
+
 void setup() {
     Serial.begin(115200);
 
@@ -106,10 +118,39 @@ void setup() {
     LCDSetup();
     // Opsætning af lyd-output
     pinMode(SOUND_PIN, OUTPUT);
+
+    WiFi.mode(WIFI_AP_STA);
     // Opsætning af ESPNOW
     ESPNOWSetup();
+    // Opsætning af Wifi
+    WifiSetup();
 
     stepper.setSpeed(stepSpeed);
+}
+
+void sendToServer() {
+    if(WiFi.status()== WL_CONNECTED){
+      WiFiClient client;
+      HTTPClient http;
+    
+      // Your Domain name with URL path or IP address with path
+      http.begin(client, SERVER_IP);
+    
+      // If you need an HTTP request with a content type: application/json, use the following:
+      http.addHeader("Content-Type", "application/json");
+
+      String data = "{\"id\":\"" DATA_USER_ID "\",\"serial\":\"" DATA_SERIAL "\",\"data\":{\"pulse\": 70}}";
+      int httpResponseCode = http.POST(data);
+     
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+        
+      // Free resources
+      http.end();
+    }
+    else {
+      Serial.println("Offline");
+    }
 }
 
 void loop() {
@@ -126,6 +167,8 @@ void loop() {
         lcd.setCursor(1, 1);
         lcd.write("              ");
         turn = false;
+
+        sendToServer();
     }
 
     delay(100);
