@@ -34,7 +34,7 @@ export async function POST({ request }) {
     }
 
     // Add a date to the entry.
-    jsonReq.date = new Date();
+    jsonReq.date = new Date().toISOString();
 
     // Load db
     await db.read()

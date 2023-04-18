@@ -12,7 +12,7 @@
         <Tooltip text="Id'et for personen der sendte dataene.">
             <h2>{entry.id}</h2>
         </Tooltip>
-        <p>{date.toUTCString()}</p>
+        <p>{date}</p>
     </div>
     <Tooltip text="Serienummeret på enheden der sendte dataene.">
         <p>Unit: {entry.serial}</p>
