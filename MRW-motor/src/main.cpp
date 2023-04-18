@@ -13,14 +13,10 @@
 #define IN4 19
 
 #define SOUND_PIN 23
-#define FREQUENCY 300
+#define FREQUENCY 2093
 
 #define stepsPerRev 2038
 #define stepSpeed 15
-
-Stepper stepper = Stepper(stepsPerRev, IN1, IN3, IN2, IN4);
-
-const int seventh = stepsPerRev / 7;
 
 #define LCD_RS 21
 #define LCD_ENABLE 22
@@ -28,9 +24,13 @@ const int seventh = stepsPerRev / 7;
 #define LCD_D5 26
 #define LCD_D6 25
 #define LCD_D7 32
-LiquidCrystal lcd(LCD_RS, LCD_ENABLE, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 #define BLE_SERVER_NAME "MRW Remote"
+
+LiquidCrystal lcd(LCD_RS, LCD_ENABLE, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+
+Stepper stepper = Stepper(stepsPerRev, IN1, IN3, IN2, IN4);
+const int seventh = stepsPerRev / 7;
 
 static BLEUUID serviceUUID("6f9f35df-adc2-44e1-8c02-1dcb67d42551");
 static BLEUUID inputCharacteristicUUID("407adfd4-7909-4371-ab1f-362fdd9541ae");
