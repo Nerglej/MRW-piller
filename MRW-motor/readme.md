@@ -1,5 +1,5 @@
 # MRW Pille-motor
-Motoren forbinder til MRW remote via Bluetooth Low Energy. Den forbinder også til et WiFi-netværk.
+Motoren forbinder til MRW remote via Bluetooth Low Energy.
 
 ## Materialer
 1. ESP32 board (NodeMCU ESP32)
@@ -8,17 +8,10 @@ Motoren forbinder til MRW remote via Bluetooth Low Energy. Den forbinder også t
 1. LCD
 1. Højtaler
 
-## WiFi
-For at forbinde til et WiFi-netværk, skal du lave en fil ved siden af main.cpp, der hedder WiFiCreds.h, der indeholder følgende:
-```c++
-#define SSID "ssid"
-#define PASSWORD "password"
-```
-Hvor du selvfølgelig inputter navnet på netværket i SSID og kodeordet i PASSWORD.
-Grunden til at dette er lavet i en fil for sig selv, er for at det er nemmere at lave ændre koderne for nogle der har lidt mindre styr
-på kode, samtidig med at det sikrer at credentialsne ikke bliver uploadet til GitHub eller andre steder, hvilket ville være et sikkerhedsbrud.
-
 ## Pins
+| Speaker | Pin |
+| SOUND   | 23  |
+
 | Driver | Pin |
 |--------|-----|
 | IN1    | 16  |

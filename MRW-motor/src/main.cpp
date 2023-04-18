@@ -12,6 +12,9 @@
 #define IN3 18
 #define IN4 19
 
+#define SOUND_PIN 23
+#define FREQUENCY 300
+
 #define stepsPerRev 2038
 #define stepSpeed 15
 
@@ -150,6 +153,8 @@ void setup() {
     setupLCD();
     setupBLE();
 
+    pinMode(SOUND_PIN, OUTPUT);
+
     stepper.setSpeed(stepSpeed);
 }
 
@@ -157,8 +162,12 @@ void loop() {
     if (turn) {
         lcd.setCursor(1, 1);
         lcd.write("Pilling you...");
+
+        tone(SOUND_PIN, FREQUENCY, 0);
         
         stepper.step(seventh);
+
+        noTone(SOUND_PIN);
 
         lcd.setCursor(1, 1);
         lcd.write("              ");
