@@ -17,25 +17,18 @@ typedef struct remote_control_message {
 
 motor_message incomingMotorData;
 
-// Callback when data is sent
+// Callback når data bliver sendt. Udelukkende for fejlfinding.
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    Serial.print("\r\nLast Packet Send Status:\t");
-    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+    Serial.print("\r\nStatus på seneste pakke:\t");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Succes" : "Fejl på afsendelse");
 }
 
-// Callback when data is received
-void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-    memcpy(&incomingMotorData, incomingData, sizeof(incomingMotorData));
-
-    Serial.print("Bytes received: ");
-    Serial.println(len);
-}
-
+// Opsætning af ESP-NOW
 void ESPNOWSetup() {
     WiFi.mode(WIFI_STA);
 
     if (esp_now_init() != ESP_OK) {
-        Serial.println("Error initializing ESP-NOW");
+        Serial.println("Kunne ikke initializere ESP-NOW");
         return;
     }
 
@@ -48,20 +41,19 @@ void ESPNOWSetup() {
     
     // Add peer        
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
-        Serial.println("Failed to add peer");
+        Serial.println("Kunne ikke tilføje peer");
         return;
     }
-
-    // Register for a callback function that will be called when data is received
-    esp_now_register_recv_cb(OnDataRecv);
 }
 
+// Opsætning af knap-input.
 void inputSetup() {
     for (int i = 0; i < inputLength; i++) {
         pinMode(inputs[i], INPUT_PULLUP);
     }
 }
 
+// Læs en knap og se om den er klikket ned.
 bool readButtonInput(uint8_t input) {
     if (digitalRead(input) == HIGH) {
         return false;
@@ -69,21 +61,18 @@ bool readButtonInput(uint8_t input) {
     return true;
 }
 
+// Sender en besked til motoren om at en knap er blevet klikket ned.
 void sendInputValue(String s) {
-    // Send input
+    // Et objekt der skal sendes
     remote_control_message control_msg;
+    // Sætter objektets input til den string der skal sendes.
     control_msg.input = s;
 
-    esp_err_t result = esp_now_send(peer_address, (uint8_t *) &control_msg, sizeof(control_msg));
-
-    if (result == ESP_OK) {
-        Serial.println("Sent with success");
-    }
-    else {
-        Serial.println("Error sending the data");
-    }
+    // Sender beskeden til motoren.
+    esp_now_send(peer_address, (uint8_t *) &control_msg, sizeof(control_msg));
 }
 
+// Læser et input. Sørger for at den kun sender beskeden én gang per klik.
 void inputRead() {
     if (latestInput != -1) {
         if (!readButtonInput(inputs[latestInput])) {
@@ -97,20 +86,25 @@ void inputRead() {
         if (readButtonInput(inputs[i])) {
             sendInputValue(inputValues[i]);
             latestInput = i;
-            Serial.print("Clicked ");
-            Serial.print(i);
             return;
         }
     }
 }
 
+// Kører én gang når ESP'en starter.
 void setup() {
     Serial.begin(115200);
+
+    // Opsætning af input
     inputSetup();
+
+    // Opsætning af ESP-NOW
     ESPNOWSetup();
 }
 
+// Kører hele tiden
 void loop() {
+    // Behandler inputtet.
     inputRead();
     delay(100);
 }
