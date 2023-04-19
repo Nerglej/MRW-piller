@@ -17,6 +17,8 @@
 #define stepsPerRev 2038
 #define stepSpeed 15
 
+#define WIFI_RETRIES 10
+
 #define SOUND_PIN 23
 #define FREQUENCY 2093
 
@@ -115,15 +117,28 @@ void ESPNOWSetup() {
 void WifiSetup() {
     // Login til WiFi-nætværk, der svarer til værdierne.
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    Serial.print("\nForbinder til Wifi");
+    LCDLog("Wi-Fi forbinder");
 
-    // Vent indtil at Wifi er forbundet.
+
+    // Vent indtil at Wifi er forbundet, eller at den har forsøgt for meget.
+    int i = 0;
     while (WiFi.status() != WL_CONNECTED) {
         Serial.print(".");
-        delay(500);
+        
+        if (i >= WIFI_RETRIES) {
+            LCDLog("Offline mode");
+            WiFi.disconnect(false, false);
+            delay(1000);
+            lcd.setCursor(0, 1);
+            lcd.print("            ");
+            return;
+        }
+
+        i++;
+        delay(1000);
     }
 
-    Serial.println("\nForbandt til Wifi");
+    LCDLog("Wi-Fi forbundet");
 }
 
 // Setup funktion der kører én gang når ESP'en starter.
