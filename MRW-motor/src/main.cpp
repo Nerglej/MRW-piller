@@ -41,12 +41,6 @@ remote_control_message remote_message;
 bool clicking = false;
 bool turn = false;
 
-// Callback når data bliver sendt. Udelukkende for fejlfinding.
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    Serial.print("\r\nLast Packet Send Status:\t");
-    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
-}
-
 // Callback når data bliver modtaget
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // Kopiér data der bliver modtaget, til en lokal variabel, så vi kan behandle det som forventet.
@@ -78,24 +72,36 @@ void LCDSetup() {
     lcd.print("MRW-piller");
 }
 
+// Print log på LCD, i midten
+void LCDLog(String str) {
+    Serial.print(str);
+
+    size_t len = strlen(str.c_str());
+    if (len > 0 && len < 16) {
+        uint8_t pos = (16 - len) / 2;
+        lcd.setCursor(pos, 1);
+    }
+    else {
+        lcd.setCursor(0, 1);
+    }
+    lcd.print(str);
+}
+
 // Opsætning af ESPNOW
 void ESPNOWSetup() {
     if (esp_now_init() != ESP_OK) {
-        Serial.println("Error initializing ESP-NOW");
+        Serial.println("Kunne ikke initializere ESP-NOW");
         return;
     }
-
-    // Registrer callback når data bliver sendt
-    esp_now_register_send_cb(OnDataSent);
 
     // Registrer den forbundede peer
     memcpy(peerInfo.peer_addr, peer_address, 6);
     peerInfo.channel = 0;  
     peerInfo.encrypt = false;
     
-    // Tilføj peer   
+    // Tilføj peer  
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
-        Serial.println("Failed to add peer");
+        Serial.println("Kunne ikke tilføje peer");
         return;
     }
 
@@ -107,15 +113,15 @@ void ESPNOWSetup() {
 void WifiSetup() {
     // Login til WiFi-nætværk, der svarer til værdierne.
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    Serial.print("\nConnecting to wifi");
+    Serial.print("\nForbinder til Wifi");
 
-    // Vent indtil at koden er forbundet.
+    // Vent indtil at Wifi er forbundet.
     while (WiFi.status() != WL_CONNECTED) {
         Serial.print(".");
         delay(500);
     }
 
-    Serial.println("\nSuccessfully connected to wifi");
+    Serial.println("\nForbandt til Wifi");
 }
 
 // Setup funktion der kører én gang når ESP'en starter.
@@ -172,8 +178,7 @@ void loop() {
     // Hvis motoren skal dreje
     if (turn) {
         // Skriv til LCD at den er ved at gøre noget, samtidig med at en lyd spiller.
-        lcd.setCursor(1, 1);
-        lcd.write("Pilling you...");
+        LCDLog("Pilling you...");
 
         tone(SOUND_PIN, FREQUENCY, 0);
         
