@@ -15,8 +15,6 @@ typedef struct remote_control_message {
     String input;
 } remote_control_message;
 
-motor_message incomingMotorData;
-
 // Callback når data bliver sendt. Udelukkende for fejlfinding.
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     Serial.print("\r\nStatus på seneste pakke:\t");
