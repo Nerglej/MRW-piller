@@ -15,10 +15,6 @@ typedef struct remote_control_message {
     String input;
 } remote_control_message;
 
-typedef struct motor_message {
-    int pulse;
-} motor_message;
-
 motor_message incomingMotorData;
 
 // Callback when data is sent
