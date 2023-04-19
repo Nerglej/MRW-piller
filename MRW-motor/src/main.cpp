@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 #include <Stepper.h>
 
 #include <esp_now.h>
@@ -20,7 +18,9 @@
 #define WIFI_RETRIES 10
 
 #define SOUND_PIN 23
-#define FREQUENCY 2093
+#define SOUND_CHANNEL 0
+#define SOUND_FREQUENCY 2093
+#define SOUND_RES 12
 
 #define LCD_RS 21
 #define LCD_ENABLE 22
@@ -67,7 +67,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
 // Opsætning af LCD
 void LCDSetup() {
-    Serial.print("Setting up LCD...");
+    Serial.println("Setting up LCD...");
 
     // Beskriv LCD display på 16 "kolonner" og 2 linjer/rækker.
     lcd.begin(16, 2);
@@ -89,6 +89,16 @@ void LCDLog(String str) {
         lcd.setCursor(0, 1);
     }
     lcd.print(str);
+}
+
+void LCDLogln(String str) {
+    LCDLog(str);
+    Serial.print("\n");
+}
+
+void LCDClearLine() {
+    lcd.setCursor(0, 1);
+    lcd.print("            ");
 }
 
 // Opsætning af ESPNOW
@@ -126,11 +136,10 @@ void WifiSetup() {
         Serial.print(".");
         
         if (i >= WIFI_RETRIES) {
-            LCDLog("Offline mode");
+            LCDLogln(" Offline mode");
             WiFi.disconnect(false, false);
             delay(1000);
-            lcd.setCursor(0, 1);
-            lcd.print("            ");
+            LCDClearLine();
             return;
         }
 
@@ -138,7 +147,14 @@ void WifiSetup() {
         delay(1000);
     }
 
-    LCDLog("Wi-Fi forbundet");
+    LCDLogln(" Wi-Fi forbundet");
+    delay(1000);
+    LCDClearLine();
+}
+
+void soundSetup() {
+    ledcSetup(SOUND_CHANNEL, SOUND_FREQUENCY, SOUND_RES);
+    ledcAttachPin(SOUND_PIN, SOUND_CHANNEL);
 }
 
 // Setup funktion der kører én gang når ESP'en starter.
@@ -148,15 +164,15 @@ void setup() {
     // Opsætning af LCD
     LCDSetup();
     // Opsætning af lyd-output
-    pinMode(SOUND_PIN, OUTPUT);
+    soundSetup();
 
     // Sæt WiFi-modulet til at fungere både som access point og station.
     // Dette gør at ESP-NOW OG POST-requests virker.
     WiFi.mode(WIFI_AP_STA);
-    // Opsætning af ESPNOW
-    ESPNOWSetup();
     // Opsætning af Wifi
     WifiSetup();
+    // Opsætning af ESPNOW
+    ESPNOWSetup();
 
     // Sætter hastigheden på steppermotoren.
     stepper.setSpeed(stepSpeed);
@@ -186,7 +202,7 @@ void sendToServer() {
         http.end();
     }
     else {
-        Serial.println("Offline");
+        Serial.println(" Offline");
     }
 }
 
@@ -197,14 +213,13 @@ void loop() {
         // Skriv til LCD at den er ved at gøre noget, samtidig med at en lyd spiller.
         LCDLog("Pilling you...");
 
-        tone(SOUND_PIN, FREQUENCY, 0);
+        ledcWriteTone(SOUND_CHANNEL, SOUND_FREQUENCY);
         
         stepper.step(seventh);
 
-        noTone(SOUND_PIN);
+        ledcWrite(SOUND_CHANNEL, 0);
 
-        lcd.setCursor(1, 1);
-        lcd.write("              ");
+        LCDClearLine();
         turn = false;
 
         // Send besked til server for at logge det.
