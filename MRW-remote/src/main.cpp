@@ -34,12 +34,12 @@ void ESPNOWSetup() {
 
     esp_now_register_send_cb(OnDataSent);
 
-    // Register peer
+    // Registrer den forbundede peer
     memcpy(peerInfo.peer_addr, peer_address, 6);
     peerInfo.channel = 0;
     peerInfo.encrypt = false;
     
-    // Add peer        
+    // Tilføj peer   
     if (esp_now_add_peer(&peerInfo) != ESP_OK){
         Serial.println("Kunne ikke tilføje peer");
         return;
