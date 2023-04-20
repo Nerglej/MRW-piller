@@ -46,7 +46,7 @@ bool clicking = false;
 bool turn = false;
 
 // Callback når data bliver modtaget
-void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+void OnDataReceive(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // Kopiér data der bliver modtaget, til en lokal variabel, så vi kan behandle det som forventet.
     memcpy(&remote_message, incomingData, sizeof(remote_message));
 
@@ -120,7 +120,7 @@ void ESPNOWSetup() {
     }
 
     // Registrer callback når data bliver modtaget
-    esp_now_register_recv_cb(OnDataRecv);
+    esp_now_register_recv_cb(OnDataReceive);
 }
 
 // Opsætning af WiFi
