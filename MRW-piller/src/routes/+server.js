@@ -2,16 +2,11 @@ import { json } from '@sveltejs/kit';
 import { db } from '$lib/db';
 
 export async function GET() {
-    // Read from the database.
-    await db.read()
-
     // Make a default entry if none is present.
-    db.data ||= {
-        entries: []
-    }
+    db.entries ||= []
 
     // Return the database contents.
-    return json(db.data.entries)
+    return json(db.entries)
 }
 
 /// Recieves a request, so it can be logged in the database. 
@@ -36,19 +31,11 @@ export async function POST({ request }) {
     // Add a date to the entry.
     jsonReq.date = new Date().toISOString();
 
-    // Load db
-    await db.read()
-
     // Default value
-    db.data ||= {
-        entries: []
-    }
+    db.entries ||= []
 
     // Push the entry to the entries property in the db.
-    db.data.entries.push(jsonReq)
-
-    // Write the db so it actually saves.
-    await db.write()
+    db.entries.push(jsonReq)
 
     return new Response(JSON.stringify({ success: true, info: "Successfully saved to db" }), { status: 200 });
 }

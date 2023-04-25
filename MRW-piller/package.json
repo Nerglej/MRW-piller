@@ -18,8 +18,5 @@
 		"typescript": "^4.9.3",
 		"vite": "^4.0.0"
 	},
-	"type": "module",
-	"dependencies": {
-		"lowdb": "^4.0.0"
-	}
+	"type": "module"
 }
