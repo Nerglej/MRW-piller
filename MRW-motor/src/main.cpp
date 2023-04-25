@@ -71,14 +71,21 @@ void LCDSetup() {
 
     // Beskriv LCD display på 16 "kolonner" og 2 linjer/rækker.
     lcd.begin(16, 2);
-    lcd.setCursor(3, 0);
 
+    lcd.setCursor(3, 0);
     lcd.print("MRW-piller");
+}
+
+void LCDClearLine() {
+    lcd.setCursor(0, 1);
+    lcd.print("                ");
 }
 
 // Print log på LCD, i midten
 void LCDLog(String str) {
     Serial.print(str);
+
+    LCDClearLine();
 
     size_t len = strlen(str.c_str());
     if (len > 0 && len < 16) {
@@ -96,10 +103,6 @@ void LCDLogln(String str) {
     Serial.print("\n");
 }
 
-void LCDClearLine() {
-    lcd.setCursor(0, 1);
-    lcd.print("            ");
-}
 
 // Opsætning af ESPNOW
 void ESPNOWSetup() {
