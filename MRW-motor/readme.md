@@ -8,6 +8,23 @@ Motoren forbinder til MRW remote via Bluetooth Low Energy.
 1. LCD
 1. Højtaler
 
+## Opsætning
+Husk at modificere settings.h så alt er svarende til hvad du skal bruge.
+Indstil peer_address til MAC-adressen på den ESP32 som der skal forbindes til.
+
+```c++
+#define WIFI_SSID "ssid"
+#define WIFI_PASSWORD "password"
+
+#define SERVER_IP "http://localhost:port/"
+
+#define DATA_USER_ID "user"
+#define DATA_SERIAL "product serial key"
+
+// FF:FF:FF:FF:FF:FF
+uint8_t peer_address[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+```
+
 ## Pins
 | Speaker | Pin |
 | SOUND   | 23  |

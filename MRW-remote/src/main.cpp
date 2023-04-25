@@ -1,50 +1,59 @@
 #include <Arduino.h>
 
-#include <BLEDevice.h>
-#include <BLEServer.h>
+#include <esp_now.h>
+#include <WiFi.h>
 
-#define BLE_SERVER_NAME "MRW Remote"
-
-#define SERVICE_UUID "6f9f35df-adc2-44e1-8c02-1dcb67d42551"
-#define CONTROL_CHARACTERISTIC_UUID "407adfd4-7909-4371-ab1f-362fdd9541ae"
-
-BLECharacteristic *pControlCharacteristic;
+#include <mac.h>
 
 // Index 0 is send, 1 is up, 2 is down, 3 is left, 4 is right.
 int inputs[5] = { 33, 32, 27, 26, 25 };
-std::__cxx11::string inputValues[5] = { "enter", "up", "down", "left", "right" };
+String inputValues[5] = { "enter", "up", "down", "left", "right" };
 int inputLength = 1;
 int latestInput = 0;
 
-void setupBLE() {
-    Serial.println("Starter BLE server...");
+esp_now_peer_info_t peerInfo;
 
-    BLEDevice::init(BLE_SERVER_NAME);
+typedef struct remote_control_message {
+    String input;
+} remote_control_message;
 
-    BLEServer *pServer = BLEDevice::createServer();
-    BLEService *pService = pServer->createService(SERVICE_UUID);
-
-    pControlCharacteristic = pService->createCharacteristic(
-                                            CONTROL_CHARACTERISTIC_UUID,
-                                            BLECharacteristic::PROPERTY_NOTIFY
-                                        );
-    pControlCharacteristic->setValue("");
-
-    pService->start();
-
-    BLEAdvertising *pAdvertising = pServer->getAdvertising();
-    pAdvertising->addServiceUUID(SERVICE_UUID);
-    pAdvertising->start();
-
-    Serial.println("BLE serveren startede.");
+// Callback når data bliver sendt. Udelukkende for fejlfinding.
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+    Serial.print("\r\nStatus på seneste pakke:\t");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Succes" : "Fejl på afsendelse");
 }
 
+// Opsætning af ESP-NOW
+void ESPNOWSetup() {
+    WiFi.mode(WIFI_STA);
+
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("Kunne ikke initializere ESP-NOW");
+        return;
+    }
+
+    esp_now_register_send_cb(OnDataSent);
+
+    // Registrer den forbundede peer
+    memcpy(peerInfo.peer_addr, peer_address, 6);
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
+    
+    // Tilføj peer   
+    if (esp_now_add_peer(&peerInfo) != ESP_OK){
+        Serial.println("Kunne ikke tilføje peer");
+        return;
+    }
+}
+
+// Opsætning af knap-input.
 void inputSetup() {
     for (int i = 0; i < inputLength; i++) {
         pinMode(inputs[i], INPUT_PULLUP);
     }
 }
 
+// Læs en knap og se om den er klikket ned.
 bool readButtonInput(uint8_t input) {
     if (digitalRead(input) == HIGH) {
         return false;
@@ -52,11 +61,18 @@ bool readButtonInput(uint8_t input) {
     return true;
 }
 
-void sendInputValue(std::string s) {
-    pControlCharacteristic->setValue(s);
-    pControlCharacteristic->notify();
+// Sender en besked til motoren om at en knap er blevet klikket ned.
+void sendInputValue(String s) {
+    // Et objekt der skal sendes
+    remote_control_message control_msg;
+    // Sætter objektets input til den string der skal sendes.
+    control_msg.input = s;
+
+    // Sender beskeden til motoren.
+    esp_now_send(peer_address, (uint8_t *) &control_msg, sizeof(control_msg));
 }
 
+// Læser et input. Sørger for at den kun sender beskeden én gang per klik.
 void inputRead() {
     if (latestInput != -1) {
         if (!readButtonInput(inputs[latestInput])) {
@@ -70,20 +86,25 @@ void inputRead() {
         if (readButtonInput(inputs[i])) {
             sendInputValue(inputValues[i]);
             latestInput = i;
-            Serial.print("Clicked ");
-            Serial.print(i);
             return;
         }
     }
 }
 
+// Kører én gang når ESP'en starter.
 void setup() {
     Serial.begin(115200);
+
+    // Opsætning af input
     inputSetup();
-    setupBLE();
+
+    // Opsætning af ESP-NOW
+    ESPNOWSetup();
 }
 
+// Kører hele tiden
 void loop() {
+    // Behandler inputtet.
     inputRead();
     delay(100);
 }
